@@ -104,7 +104,9 @@ class DjangoTranslation(gettext_module.GNUTranslations):
         gettext_module.GNUTranslations.__init__(self)
         if domain is not None:
             self.domain = domain
-        self.set_output_charset('utf-8')  # For Python 2 gettext() (#25720)
+        # set_output_charset() only exists in Python 2
+        if hasattr(self, 'set_output_charset'):
+            self.set_output_charset('utf-8')  # For Python 2 gettext() (#25720)
 
         self.__language = language
         self.__to_language = to_language(language)
@@ -148,12 +150,20 @@ class DjangoTranslation(gettext_module.GNUTranslations):
         Using param `use_null_fallback` to avoid confusion with any other
         references to 'fallback'.
         """
-        return gettext_module.translation(
-            domain=self.domain,
-            localedir=localedir,
-            languages=[self.__locale],
-            codeset='utf-8',
-            fallback=use_null_fallback)
+        # codeset parameter was removed in Python 3.11
+        if sys.version_info < (3, 11):
+            return gettext_module.translation(
+                domain=self.domain,
+                localedir=localedir,
+                languages=[self.__locale],
+                codeset='utf-8',
+                fallback=use_null_fallback)
+        else:
+            return gettext_module.translation(
+                domain=self.domain,
+                localedir=localedir,
+                languages=[self.__locale],
+                fallback=use_null_fallback)
 
     def _init_translation_catalog(self):
         """Creates a base catalog using global django translations."""
